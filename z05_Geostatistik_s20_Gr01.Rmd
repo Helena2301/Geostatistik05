@@ -1,0 +1,96 @@
+---
+title: "Aufgabe 05"
+author: "Gruppe 01"
+date: "30 5 2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Workspace laden
+library(dplyr)
+load("data/yingtan_20_ueb3.RData")
+Ca <- ljz$Ca_exch
+```
+## Aufgabe 12 Die große Variogrammmodellierung
+Die Variogrammanalyse dient der Beurteilung der räumlichen Variabilität einer Zielgröße und ist Grundlage der angestrebten Kriging-Interpolationsverfahren.
+
+a) Laden Sie das Paket gstat und plotten Sie die Variogrammwolke für die austauschbaren Ca-Ionen. Beschreiben Sie in ein, zwei Sätzen die Grundstruktur des Plots und erklären Sie ebenso präzise das Zustandekommen vereinzelter vertikaler Streifen, z.B. bei 300, 600 oder 750m. (2 Punkte)
+```{r Aufgabe 12a}
+
+#Koordinaten definieren
+library(sp)
+coordinates(ljz) <- c("EAST", "NORTH")
+#Variogrammwolke der austauschbaren Ca-Ionen
+library(gstat)
+variowCa <- variogram(Ca ~ EAST + NORTH, 
+                      ljz,
+                      cloud = TRUE)
+plot(variowCa,
+     main = "Variogrammwolke der austauschbaren Ca-Ionen")
+```
+In der Variogrammwolke wird die Varianz der Werte der gemessenen austauschbaren Ca-Ionen in Abhängigkeit von ihrer Distanz zu einander dargestellt. Dafür werden die Werte paarweise betrachtet. Die Werte variieren dabei sowohl bei niedrigen, als auch bei größeren Distanzen zueinander.\
+Dadurch, dass die meisten Werte mithilfe eines bestimmten Rasters im selben Abstand zu einander beprobt wurden, sind in der Variogrammwolke Streifen bei z.B. 300m, 600m und 750m zu erkennen.
+
+b) Erstellen Sie nun ein omnidirektionales empirisches Variogramm für die austauschbaren Ca-Ionen. Ändern Sie dabei die Default-Einstellungen der Argumente cutoff und width, um ein aussagekräftiges Ergebnis zu erzielen. Beziehen Sie sich auf gültige 'Daumenregeln' und begründen Sie knapp ihre Parameterwahl. Plotten Sie ihr Variogramm; verwenden Sie Kreuze anstelle von Punkten.
+(2 Punkte)
+```{r Aufgabe 12b}
+#omnidirektionales empirisches Variogramm
+vario_omni_Ca <- variogram(Ca ~ EAST + NORTH,
+                           data = ljz,
+                           alpha = c(0, 45, 90, 135),
+                           cutoff = 4400,
+                           width = 150)
+vario_omni_Ca
+
+plot(vario_omni_Ca,
+     main = "Omnidirektionales empirisches Variogramm",
+     pch = 4,
+     omnidirectional = TRUE)
+
+```
+Die maximale Distanz zweier Punkte beträgt etwa 4400m. deshalb wurde der Parameter cutoff auf 4400 gesetzt. width Klassenbreite nach ausprobieren ??????????????????????
+
+c) Schauen Sie sich das Objekt, welches durch die Methode variogram erzeugt wird, etwas genauer an. Welchen Klassen gehört es an? Wofür stehen die ersten drei Variablen des erzeugten Objekts? (1 Punkt)
+
+Das erstellte Variogramm hat 29 Klassen. 
+Mit dem ersten Variable wird festgelegt, welche Variable analysiert werden soll. die austauschbaren Ca-Ionen sollen hier untransformiert in Abhängigkeit zu ihrer geographischen Lage untersucht werden. Die Werte sind zwar nicht normalverteilt, eine Transformation bringt allerdings nur eine Annährung an die Normalverteilung (s. Aufgabenzettel 04). Mit data wird der Datensatz festgelegt (und locations beschreibt die Koordinaten im Datensatz).
+
+d) Fügen Sie ihrem empirischen Variogramm-Plot aus b) ein passendes Modell
+hinzu. Erläutern Sie kurz, wie Sie vorgegangen sind.
+Hinweis: Mit dem Befehl show.vgms listen Sie die in gstat verfügbaren, autorisierten
+Modelle auf. (2 Punkte)
+```{r Aufgabe 12d}
+#Modell zum Variogramm
+vario_omni_Ca_fit <- fit.variogram(vario_omni_Ca, 
+                                   vgm(model = "Sph"))
+vario_omni_Ca_fit
+plot(vario_omni_Ca,
+     model = vario_omni_Ca_fit)
+```
+sill: 117.75
+range: 293.96
+nugget: 50 (s. a))
+
+SILL: The value at which the model first flattens out.
+RANGE: The distance at which the model first flattens out.
+NUGGET: The value at which the semi-variogram (almost) intercepts the y-value
+
+e) Betrachten Sie noch einmal ihre Variogramme aus b) bzw. d) und interpretieren
+Sie diese. Argumentieren Sie auf Basis der Variogrammcharakteristik
+und des Nugget-To-Sill-Ratio nach CAMBARDELLA (vgl. S.1508f.). Wie bewerten
+Sie das autokorrelative Verhalten der Zielvariablen im Raum?
+(3 Punkte)
+```{r Aufgabe 12e}
+#Nugget-to-Sill-Ratio
+nugget_sill <- 50/117.75
+nugget_sill
+```
+<=25% Werte der Ca-Ionen stehen in starkem Zusammenhang mit ihrer geographischen Lage/Distanz zu einander. Proben mit geringer Distanz sind sich ähnlich.
+25-75% Werte leicht ortsabhängig
+>75% Es besteht kein Zusammenhang zwischen den Werten und ihrer räumlichen Nähe
+
+Nugget-Sill-Ratio = 0,4246 = 42,5% -> Die Werte der gemessenen austauschbaren Ca-Ionen sind leicht Abhängig von ihrer geographischen Lage/Distanz zu einander und ähnlich. 
